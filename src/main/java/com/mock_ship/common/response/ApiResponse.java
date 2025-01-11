@@ -1,4 +1,4 @@
-package com.study.ddd.common.response;
+package com.mock_ship.common.response;
 
 import lombok.Builder;
 import lombok.Getter;

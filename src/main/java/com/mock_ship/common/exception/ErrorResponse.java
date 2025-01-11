@@ -1,8 +1,6 @@
-package com.study.ddd.common.exception;
+package com.mock_ship.common.exception;
 
-import lombok.Getter;
 
-@Getter
 public record ErrorResponse(String code, String message, int status) {
 
     public static ErrorResponse of(ApiException ex) {

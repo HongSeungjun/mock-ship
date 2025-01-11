@@ -1,4 +1,4 @@
-package com.study.ddd.common.response;
+package com.mock_ship.common.response;
 
 import java.util.HashMap;
 import java.util.Map;

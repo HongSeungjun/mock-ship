@@ -1,4 +1,4 @@
-package com.study.ddd.common.exception;
+package com.mock_ship.common.exception;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;

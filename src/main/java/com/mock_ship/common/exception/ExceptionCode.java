@@ -1,4 +1,4 @@
-package com.study.ddd.common.exception;
+package com.mock_ship.common.exception;
 
 import lombok.Getter;
 import org.springframework.http.HttpStatus;
