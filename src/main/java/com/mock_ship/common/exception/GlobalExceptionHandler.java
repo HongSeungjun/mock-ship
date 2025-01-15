@@ -1,5 +1,6 @@
 package com.mock_ship.common.exception;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -7,6 +8,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.stream.Collectors;
 
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -25,15 +27,18 @@ public class GlobalExceptionHandler {
                 .map(error -> error.getField() + ": " + error.getDefaultMessage())
                 .collect(Collectors.joining(", "));
 
+        log.debug(errorDetails);
+
         ApiException apiException = new ApiException(ExceptionCode.VALIDATION_ERROR, errorDetails);
         return ResponseEntity
                 .status(apiException.getStatus())
                 .body(ErrorResponse.of(apiException));
     }
 
-    @ExceptionHandler(Exception.class)
+    @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<ErrorResponse> handleGeneralException(Exception ex) {
         ApiException apiException = new ApiException(ExceptionCode.INTERNAL_SERVER_ERROR, ex.getMessage());
+        log.info(ex.getMessage());
         return ResponseEntity
                 .status(apiException.getStatus())
                 .body(ErrorResponse.of(apiException));
