@@ -1,7 +1,6 @@
 package com.mock_ship.order.command.domain;
 
 import jakarta.persistence.*;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -22,10 +21,21 @@ public class Order {
     @OrderColumn(name = "item_idx")
     private List<OrderItem> items;
 
-    private double totalWeight;
 
     @Enumerated(EnumType.STRING)
     private OrderStatus orderStatus;
 
+    public void confirmOrder() {
+        if (this.items.isEmpty()) {
+            throw new IllegalStateException("주문 항목이 없습니다.");
+        }
+        this.orderStatus = OrderStatus.CONFIRMED;
+    }
+
+    public void cancelOrder() {
+        if (this.orderStatus == OrderStatus.PENDING) {
+            this.orderStatus = OrderStatus.CANCELED;
+        }
+    }
 
 }

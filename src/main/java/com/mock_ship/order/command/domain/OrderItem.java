@@ -5,18 +5,38 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-@Entity
-@Table(name = "order_item")
-@Getter
+@Embeddable
 public class OrderItem {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    private String productId;
+    private Long productId;
     private String productName;
     private int quantity;
     private double weight;
+
+    protected OrderItem() {
+    }
+
+    public OrderItem(Long productId, String productName, int quantity, double weight) {
+        this.productId = productId;
+        this.productName = productName;
+        this.quantity = quantity;
+        this.weight = weight;
+    }
+
+    public Long getProductId() {
+        return productId;
+    }
+
+    public String getProductName() {
+        return productName;
+    }
+
+    public int getQuantity() {
+        return quantity;
+    }
+
+    public double getWeight() {
+        return weight;
+    }
 
 }
