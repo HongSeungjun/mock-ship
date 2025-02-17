@@ -17,7 +17,8 @@ public enum ExceptionCode {
     
     // 도메인별 에러
     CUSTOMER_NOT_FOUND(HttpStatus.NOT_FOUND, "CUSTOMER_NOT_FOUND", "Customer not found."),
-    ORDER_CANNOT_BE_CANCELED(HttpStatus.CONFLICT, "ORDER_CANNOT_BE_CANCELED", "Order cannot be canceled.");
+    ORDER_CANNOT_BE_CANCELED(HttpStatus.CONFLICT, "ORDER_CANNOT_BE_CANCELED", "Order cannot be canceled."),
+    ORDER_NO_CONTENT(HttpStatus.NO_CONTENT, "ORDER_NOT_EXISTED", "Order dose not exist.");
 
     private final HttpStatus status;
     private final String code;
