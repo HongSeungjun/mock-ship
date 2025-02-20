@@ -35,10 +35,12 @@ public class Delivery {
     @Embedded
     private TrackingNo trackingNo;
 
+    private Long deliveryAgentId;
+
     protected Delivery() {
     }
 
-    public Delivery(DeliveryNo deliveryNo, OrderNo orderNo, Address deliveryAddress) {
+    public Delivery(DeliveryNo deliveryNo, OrderNo orderNo, Address deliveryAddress, Long deliveryAgentId) {
         if (deliveryNo == null) throw new IllegalArgumentException("배송 번호는 필수입니다.");
         if (orderNo == null) throw new IllegalArgumentException("주문 번호는 필수입니다.");
         if (deliveryAddress == null) throw new IllegalArgumentException("배송 주소는 필수입니다.");
@@ -48,6 +50,7 @@ public class Delivery {
         this.deliveryAddress = deliveryAddress;
         this.deliveryStatus = DeliveryStatus.PENDING; // 기본 상태 설정
         this.deliveryDate = LocalDateTime.now(); // 현재 시간으로 설정
+        this.deliveryAgentId = deliveryAgentId;
     }
 
     public DeliveryNo getDeliveryNo() {

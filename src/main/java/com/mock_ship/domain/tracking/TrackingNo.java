@@ -6,15 +6,15 @@ import java.util.UUID;
 
 @Embeddable
 public class TrackingNo {
-    private String value;
+    private String number;
 
     protected TrackingNo() {}
 
-    public TrackingNo(String value) {
-        if (value == null || value.isBlank()) {
+    public TrackingNo(String number) {
+        if (number == null || number.isBlank()) {
             throw new IllegalArgumentException("TrackingNo는 필수 값입니다.");
         }
-        this.value = value;
+        this.number = number;
     }
 
     public static TrackingNo generate() {
