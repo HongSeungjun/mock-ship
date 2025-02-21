@@ -19,9 +19,7 @@ public class OrderApplicationService {
     private final GetOrderUseCase getOrderUseCase;
     private final CancelOrderUseCase cancelOrderUseCase;
 
-    public OrderResponseDto createOrder(OrderRequestDto dto) {
-        return createOrderUseCase.execute(dto);
-    }
+    public void createOrder(OrderRequestDto dto) { createOrderUseCase.execute(dto); }
 
     public void confirmOrder(String orderNo) {
         confirmOrderUseCase.execute(OrderNo.of(orderNo));

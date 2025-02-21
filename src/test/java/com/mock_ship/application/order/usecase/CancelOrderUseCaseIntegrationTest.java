@@ -1,13 +1,12 @@
 package com.mock_ship.application.order.usecase;
 
-import com.mock_ship.common.exception.ApiException;
 import com.mock_ship.domain.order.*;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,8 +45,9 @@ class CancelOrderUseCaseIntegrationTest {
         entityManager.clear();
     }
 
+    @DisplayName("주문을 취소하면 상태가 CANCELED 가 된다.")
     @Test
-    void 주문을_취소하면_DB에서도_상태가_CANCELED로_변경된다() {
+    void cancelOrder_ShouldChangeStatusToCanceled() {
         // When
         cancelOrderUseCase.execute(orderNo);
 

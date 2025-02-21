@@ -13,17 +13,20 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+
 @ExtendWith(MockitoExtension.class)
-class CancelOrderUseCaseTest {
+class ConfirmOrderUseCaseTest {
 
     @Mock
     private OrderRepository orderRepository;
 
     @InjectMocks
-    private CancelOrderUseCase cancelOrderUseCase;
+    private ConfirmOrderUseCase confirmOrderUseCase;
 
     private Order order;
 
@@ -35,30 +38,28 @@ class CancelOrderUseCaseTest {
         );
     }
 
-    @DisplayName("주문을 취소하면 상태가 CANCELED로 변경된다")
+    @DisplayName("주문을 확정하면 상태가 CONFIRMED 상태로 변경된다.")
     @Test
-    void cancelOrder_ShouldChangeStatusToCanceled() {
-        // given
+    void confirmOrder_ShouldChangeStatusToConfirmed() {
+        //given
         when(orderRepository.findById(order.getNumber())).thenReturn(Optional.of(order));
 
-        // when
-        cancelOrderUseCase.execute(order.getNumber());
+        //when
+        confirmOrderUseCase.execute(order.getNumber());
 
-        // then
-        assertEquals(OrderStatus.CANCELED, order.getOrderStatus());
-
-        verify(orderRepository, times(1)).findById(order.getNumber());
+        //then
+        assertEquals(OrderStatus.CONFIRMED, order.getOrderStatus());
     }
 
-    @DisplayName("존재하지 않는 주문을 취소하려고 하면 예외를 던진다")
+    @DisplayName("존재하지 않는 주문을 확정하려고 하면 예외를 던진다")
     @Test
-    void cancelNonExistentOrder_ShouldThrowException() {
+    void confirmNonExistentOrder_ShouldThrowException() {
         // given
         when(orderRepository.findById(order.getNumber())).thenReturn(Optional.empty());
 
         // when & then
         ApiException exception = assertThrows(ApiException.class, () -> {
-            cancelOrderUseCase.execute(order.getNumber());
+            confirmOrderUseCase.execute(order.getNumber());
         });
 
         assertEquals("주문을 찾을 수 없습니다.", exception.getMessage());
@@ -68,22 +69,23 @@ class CancelOrderUseCaseTest {
         verify(orderRepository, never()).save(any(Order.class));
     }
 
-    @DisplayName("확정된 주문을 취소하려고 하면 예외를 던진다")
+    @DisplayName("취소상태의 주문을 확정하려고 하면 예외를 던진다")
     @Test
-    void cancelConfirmedOrder_ShouldThrowException() {
+    void confirmCanceledOrder_ShouldThrowException() {
+        order.cancelOrder();
         // given
-        order.confirmOrder(); // 주문을 확정 상태로 변경
         when(orderRepository.findById(order.getNumber())).thenReturn(Optional.of(order));
 
         // when & then
         ApiException exception = assertThrows(ApiException.class, () -> {
-            cancelOrderUseCase.execute(order.getNumber());
+            confirmOrderUseCase.execute(order.getNumber());
         });
 
-        assertEquals("대기 상태의 주문만 취소할 수 있습니다.", exception.getMessage());
+        assertEquals("주문을 확정할 수 없는 상태입니다.", exception.getMessage());
 
         // 검증
         verify(orderRepository, times(1)).findById(order.getNumber());
         verify(orderRepository, never()).save(any(Order.class));
     }
+
 }
