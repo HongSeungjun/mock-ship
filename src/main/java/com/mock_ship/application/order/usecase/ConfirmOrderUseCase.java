@@ -19,7 +19,7 @@ public class ConfirmOrderUseCase {
     public void execute(OrderNo orderNo) {
         Order order = orderRepository.findById(orderNo)
                 .orElseThrow(() -> new ApiException(ExceptionCode.ORDER_NO_CONTENT,"주문을 찾을 수 없습니다."));
-        order.confirmOrder();
+        order.confirm();
     }
 
 }
