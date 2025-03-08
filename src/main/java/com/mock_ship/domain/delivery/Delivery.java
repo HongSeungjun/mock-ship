@@ -1,10 +1,11 @@
 package com.mock_ship.domain.delivery;
 
+import com.mock_ship.common.exception.ApiException;
+import com.mock_ship.common.exception.ExceptionCode;
 import com.mock_ship.domain.tracking.TrackingNo;
 import com.mock_ship.common.model.Address;
 import com.mock_ship.domain.order.OrderNo;
 import jakarta.persistence.*;
-
 import java.time.LocalDateTime;
 
 // Builder pattern을 애그리거트에서 지양하는 이유는 무분별한 객체 생성을 막아준다
@@ -22,56 +23,101 @@ public class Delivery {
     private OrderNo orderNo;
 
     @Embedded
-    @AttributeOverrides({ // 저장될 컬럼명 지정
+    @AttributeOverrides({
             @AttributeOverride(name = "zipCode", column = @Column(name = "delivery_zip_code")),
             @AttributeOverride(name = "address1", column = @Column(name = "delivery_addr1")),
             @AttributeOverride(name = "address2", column = @Column(name = "delivery_addr2"))
     })
     private Address deliveryAddress;
+
     @Column(name = "state")
     @Enumerated(EnumType.STRING)
     private DeliveryStatus deliveryStatus;
+
     private LocalDateTime deliveryDate;
+
     @Embedded
     private TrackingNo trackingNo;
 
-    private Long deliveryAgentId;
+    @Embedded
+    private DeliveryAgentId deliveryAgentId;
 
-    protected Delivery() {
-    }
+    private LocalDateTime assignedAt;
+    private LocalDateTime departedAt;
+    private LocalDateTime deliveredAt;
+    private LocalDateTime cancelledAt;
 
-    public Delivery(DeliveryNo deliveryNo, OrderNo orderNo, Address deliveryAddress, Long deliveryAgentId) {
-        if (deliveryNo == null) throw new IllegalArgumentException("배송 번호는 필수입니다.");
-        if (orderNo == null) throw new IllegalArgumentException("주문 번호는 필수입니다.");
-        if (deliveryAddress == null) throw new IllegalArgumentException("배송 주소는 필수입니다.");
+    private String currentLocation;
+
+    protected Delivery() {}
+
+    private Delivery(DeliveryNo deliveryNo, OrderNo orderNo, Address deliveryAddress, DeliveryAgentId deliveryAgentId) {
+        if (deliveryNo == null) throw new ApiException(ExceptionCode.BAD_REQUEST, "배송 번호는 필수입니다.");
+        if (orderNo == null) throw new ApiException(ExceptionCode.BAD_REQUEST, "주문 번호는 필수입니다.");
+        if (deliveryAddress == null) throw new ApiException(ExceptionCode.BAD_REQUEST, "배송 주소는 필수입니다.");
 
         this.deliveryNo = deliveryNo;
         this.orderNo = orderNo;
         this.deliveryAddress = deliveryAddress;
-        this.deliveryStatus = DeliveryStatus.PENDING; // 기본 상태 설정
-        this.deliveryDate = LocalDateTime.now(); // 현재 시간으로 설정
+        this.deliveryStatus = DeliveryStatus.PENDING;
+        this.deliveryDate = LocalDateTime.now();
         this.deliveryAgentId = deliveryAgentId;
+        this.currentLocation = "배송 준비 중";
     }
 
-    public DeliveryNo getDeliveryNo() {
-        return deliveryNo;
+    public static Delivery createDelivery(DeliveryNo deliveryNo, OrderNo orderNo, Address deliveryAddress, DeliveryAgentId deliveryAgentId) {
+        return new Delivery(deliveryNo, orderNo, deliveryAddress, deliveryAgentId);
     }
 
-    public OrderNo getOrderNo() {
-        return orderNo;
+    public void assignDeliveryAgent(DeliveryAgentId agentId) {
+        if (this.deliveryStatus != DeliveryStatus.PENDING)
+            throw new ApiException(ExceptionCode.BAD_REQUEST, "배송 준비중일 때만 배정이 가능합니다.");
+
+        this.deliveryAgentId = agentId;
+        this.deliveryStatus = DeliveryStatus.IN_TRANSIT;
+        this.assignedAt = LocalDateTime.now();
     }
 
-    public Address getDeliveryAddress() {
-        return deliveryAddress;
+    public void markOutForDelivery() {
+        if (this.deliveryStatus != DeliveryStatus.IN_TRANSIT)
+            throw new ApiException(ExceptionCode.BAD_REQUEST, "배송 중(IN_TRANSIT) 상태일 때만 출발할 수 있습니다.");
+
+        this.deliveryStatus = DeliveryStatus.OUT_FOR_DELIVERY;
+        this.departedAt = LocalDateTime.now();
     }
 
-    public DeliveryStatus getDeliveryStatus() {
+    public void completeDelivery() {
+        if (this.deliveryStatus != DeliveryStatus.OUT_FOR_DELIVERY)
+            throw new ApiException(ExceptionCode.BAD_REQUEST, "배송 출발 상태(OUT_FOR_DELIVERY)일 때만 완료할 수 있습니다.");
+
+        this.deliveryStatus = DeliveryStatus.DELIVERED;
+        this.deliveredAt = LocalDateTime.now();
+    }
+
+    public void cancelDelivery() {
+        if (this.deliveryStatus != DeliveryStatus.PENDING)
+            throw new ApiException(ExceptionCode.BAD_REQUEST, "배송 준비중일 때만 취소가 가능합니다.");
+
+        this.deliveryStatus = DeliveryStatus.CANCELLED;
+        this.cancelledAt = LocalDateTime.now();
+    }
+
+    public void updateLocation(String newLocation) {
+        if (this.deliveryStatus != DeliveryStatus.IN_TRANSIT && this.deliveryStatus != DeliveryStatus.OUT_FOR_DELIVERY)
+            throw new ApiException(ExceptionCode.BAD_REQUEST, "배송 중(IN_TRANSIT) 또는 배송 출발(OUT_FOR_DELIVERY) 상태일 때만 위치를 업데이트할 수 있습니다.");
+
+        this.currentLocation = newLocation;
+    }
+
+    public DeliveryStatus status() {
         return deliveryStatus;
     }
 
-    public LocalDateTime getDeliveryDate() {
-        return deliveryDate;
+    public String currentLocation() {
+        return currentLocation;
     }
 
-
+    public DeliveryAgentId assignedAgent() {
+        return deliveryAgentId;
+    }
 }
