@@ -1,9 +1,12 @@
 package com.mock_ship.domain.delivery;
 
+import com.mock_ship.common.event.DomainEventPublisher;
 import com.mock_ship.common.exception.ApiException;
 import com.mock_ship.common.exception.ExceptionCode;
-import com.mock_ship.domain.tracking.TrackingNo;
 import com.mock_ship.common.model.Address;
+import com.mock_ship.domain.delivery.event.DeliveryAssignedEvent;
+import com.mock_ship.domain.delivery.event.DeliveryCompletedEvent;
+import com.mock_ship.domain.delivery.event.DeliveryCreatedEvent;
 import com.mock_ship.domain.order.OrderNo;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
@@ -16,6 +19,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "deliveries")
 public class Delivery {
+
     @EmbeddedId
     private DeliveryNo deliveryNo;
 
@@ -37,9 +41,6 @@ public class Delivery {
     private LocalDateTime deliveryDate;
 
     @Embedded
-    private TrackingNo trackingNo;
-
-    @Embedded
     private DeliveryAgentId deliveryAgentId;
 
     private LocalDateTime assignedAt;
@@ -49,9 +50,9 @@ public class Delivery {
 
     private String currentLocation;
 
-    protected Delivery() {}
+    protected Delivery() {} // JPA용 기본 생성자
 
-    private Delivery(DeliveryNo deliveryNo, OrderNo orderNo, Address deliveryAddress, DeliveryAgentId deliveryAgentId) {
+    private Delivery(DeliveryNo deliveryNo, OrderNo orderNo, Address deliveryAddress) {
         if (deliveryNo == null) throw new ApiException(ExceptionCode.BAD_REQUEST, "배송 번호는 필수입니다.");
         if (orderNo == null) throw new ApiException(ExceptionCode.BAD_REQUEST, "주문 번호는 필수입니다.");
         if (deliveryAddress == null) throw new ApiException(ExceptionCode.BAD_REQUEST, "배송 주소는 필수입니다.");
@@ -59,65 +60,69 @@ public class Delivery {
         this.deliveryNo = deliveryNo;
         this.orderNo = orderNo;
         this.deliveryAddress = deliveryAddress;
-        this.deliveryStatus = DeliveryStatus.PENDING;
+        this.deliveryStatus = DeliveryStatus.IN_TRANSIT; // 주문 확정 후 배송 시작
         this.deliveryDate = LocalDateTime.now();
-        this.deliveryAgentId = deliveryAgentId;
-        this.currentLocation = "배송 준비 중";
+
+        // 배송 생성 이벤트 발생
+        DomainEventPublisher.publish(new DeliveryCreatedEvent(deliveryNo, orderNo, deliveryAddress));
     }
 
-    public static Delivery createDelivery(DeliveryNo deliveryNo, OrderNo orderNo, Address deliveryAddress, DeliveryAgentId deliveryAgentId) {
-        return new Delivery(deliveryNo, orderNo, deliveryAddress, deliveryAgentId);
+    /**
+     * 배송 생성 (주문 확정 후 자동으로 호출됨)
+     */
+    public static Delivery createDelivery(DeliveryNo deliveryNo, OrderNo orderNo, Address deliveryAddress) {
+        return new Delivery(deliveryNo, orderNo, deliveryAddress);
     }
 
-    public void assignDeliveryAgent(DeliveryAgentId agentId) {
-        if (this.deliveryStatus != DeliveryStatus.PENDING)
-            throw new ApiException(ExceptionCode.BAD_REQUEST, "배송 준비중일 때만 배정이 가능합니다.");
+    /**
+     * 배송 기사 배정 및 배송 출발
+     */
+    public void assignAgentAndStartDelivery(DeliveryAgentId agentId) {
+        if (this.deliveryStatus != DeliveryStatus.IN_TRANSIT)
+            throw new ApiException(ExceptionCode.BAD_REQUEST, "배송 출발은 배송 중(IN_TRANSIT) 상태에서만 가능합니다.");
+
+        if (agentId == null)
+            throw new ApiException(ExceptionCode.BAD_REQUEST, "배송 기사 정보가 필요합니다.");
 
         this.deliveryAgentId = agentId;
-        this.deliveryStatus = DeliveryStatus.IN_TRANSIT;
-        this.assignedAt = LocalDateTime.now();
-    }
-
-    public void markOutForDelivery() {
-        if (this.deliveryStatus != DeliveryStatus.IN_TRANSIT)
-            throw new ApiException(ExceptionCode.BAD_REQUEST, "배송 중(IN_TRANSIT) 상태일 때만 출발할 수 있습니다.");
-
         this.deliveryStatus = DeliveryStatus.OUT_FOR_DELIVERY;
+        this.assignedAt = LocalDateTime.now();
         this.departedAt = LocalDateTime.now();
+
+        DomainEventPublisher.publish(new DeliveryAssignedEvent(this.deliveryNo, agentId));
     }
 
+    /**
+     * 배송 완료
+     */
     public void completeDelivery() {
         if (this.deliveryStatus != DeliveryStatus.OUT_FOR_DELIVERY)
-            throw new ApiException(ExceptionCode.BAD_REQUEST, "배송 출발 상태(OUT_FOR_DELIVERY)일 때만 완료할 수 있습니다.");
+            throw new ApiException(ExceptionCode.BAD_REQUEST, "배송 출발 상태에서만 배송 완료 가능합니다.");
 
         this.deliveryStatus = DeliveryStatus.DELIVERED;
         this.deliveredAt = LocalDateTime.now();
+
+        DomainEventPublisher.publish(new DeliveryCompletedEvent(this.deliveryNo));
     }
 
+    /**
+     * 배송 취소 (PENDING 상태일 때만 가능)
+     */
     public void cancelDelivery() {
         if (this.deliveryStatus != DeliveryStatus.PENDING)
-            throw new ApiException(ExceptionCode.BAD_REQUEST, "배송 준비중일 때만 취소가 가능합니다.");
+            throw new ApiException(ExceptionCode.BAD_REQUEST, "배송 준비 중 상태에서만 취소 가능합니다.");
 
         this.deliveryStatus = DeliveryStatus.CANCELLED;
         this.cancelledAt = LocalDateTime.now();
     }
 
+    /**
+     * 실시간 위치 업데이트 (배송 중, 배송 출발 상태에서만 가능)
+     */
     public void updateLocation(String newLocation) {
         if (this.deliveryStatus != DeliveryStatus.IN_TRANSIT && this.deliveryStatus != DeliveryStatus.OUT_FOR_DELIVERY)
-            throw new ApiException(ExceptionCode.BAD_REQUEST, "배송 중(IN_TRANSIT) 또는 배송 출발(OUT_FOR_DELIVERY) 상태일 때만 위치를 업데이트할 수 있습니다.");
+            throw new ApiException(ExceptionCode.BAD_REQUEST, "배송 중(IN_TRANSIT) 또는 배송 출발(OUT_FOR_DELIVERY) 상태에서만 위치를 업데이트할 수 있습니다.");
 
         this.currentLocation = newLocation;
-    }
-
-    public DeliveryStatus status() {
-        return deliveryStatus;
-    }
-
-    public String currentLocation() {
-        return currentLocation;
-    }
-
-    public DeliveryAgentId assignedAgent() {
-        return deliveryAgentId;
     }
 }
