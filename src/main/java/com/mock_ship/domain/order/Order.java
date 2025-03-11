@@ -4,7 +4,7 @@ import com.mock_ship.common.exception.ApiException;
 import com.mock_ship.common.exception.ExceptionCode;
 import com.mock_ship.domain.order.event.OrderCanceledEvent;
 import com.mock_ship.domain.order.event.OrderConfirmedEvent;
-import com.mock_ship.common.event.DomainEventPublisher;
+import com.mock_ship.common.event.Events;
 import jakarta.persistence.*;
 
 import java.util.List;
@@ -51,7 +51,7 @@ public class Order {
         orderStatus = OrderStatus.CONFIRMED;
 
         // 주문 확정 이벤트 발행
-        DomainEventPublisher.publish(new OrderConfirmedEvent(number));
+        Events.raise(new OrderConfirmedEvent(number));
     }
 
     /** 주문 취소 */
@@ -62,26 +62,26 @@ public class Order {
         orderStatus = OrderStatus.CANCELED;
 
         // 주문 취소 이벤트 발행
-        DomainEventPublisher.publish(new OrderCanceledEvent(number));
+        Events.raise(new OrderCanceledEvent(number));
     }
 
     /** 주문번호 반환 */
-    public OrderNo orderNo() {
+    public OrderNo getOrderNo() {
         return number;
     }
 
     /** 주문 상태 반환 */
-    public OrderStatus status() {
+    public OrderStatus getOrderStatus() {
         return orderStatus;
     }
 
     /** 고객 ID 반환 */
-    public String customerId() {
+    public String getCustomerId() {
         return customerId;
     }
 
     /** 주문 아이템 반환 */
-    public List<OrderItem> items() {
+    public List<OrderItem> getItems() {
         return List.copyOf(items);
     }
 }

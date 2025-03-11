@@ -14,11 +14,11 @@ public enum ExceptionCode {
     CONFLICT(HttpStatus.CONFLICT, "CONFLICT", "Conflict in resource state."),
     FORBIDDEN(HttpStatus.FORBIDDEN, "FORBIDDEN", "Access denied."),
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Authentication failed."),
-    
-    // 도메인별 에러
+    NO_CONTENT(HttpStatus.NO_CONTENT, "CONTENT_NOT_EXISTED", "Content dose not exist."),
+
+    // 도메인별 에러,
     CUSTOMER_NOT_FOUND(HttpStatus.NOT_FOUND, "CUSTOMER_NOT_FOUND", "Customer not found."),
-    ORDER_CANNOT_BE_CANCELED(HttpStatus.CONFLICT, "ORDER_CANNOT_BE_CANCELED", "Order cannot be canceled."),
-    ORDER_NO_CONTENT(HttpStatus.NO_CONTENT, "ORDER_NOT_EXISTED", "Order dose not exist.");
+    ORDER_CANNOT_BE_CANCELED(HttpStatus.CONFLICT, "ORDER_CANNOT_BE_CANCELED", "Order cannot be canceled.");
 
     private final HttpStatus status;
     private final String code;

@@ -1,12 +1,10 @@
 package com.mock_ship.domain.delivery;
 
-import com.mock_ship.common.event.DomainEventPublisher;
+import com.mock_ship.common.event.Events;
 import com.mock_ship.common.exception.ApiException;
 import com.mock_ship.common.exception.ExceptionCode;
 import com.mock_ship.common.model.Address;
-import com.mock_ship.domain.delivery.event.DeliveryAssignedEvent;
-import com.mock_ship.domain.delivery.event.DeliveryCompletedEvent;
-import com.mock_ship.domain.delivery.event.DeliveryCreatedEvent;
+import com.mock_ship.domain.delivery.event.*;
 import com.mock_ship.domain.order.OrderNo;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
@@ -34,23 +32,21 @@ public class Delivery {
     })
     private Address deliveryAddress;
 
-    @Column(name = "state")
     @Enumerated(EnumType.STRING)
     private DeliveryStatus deliveryStatus;
 
     private LocalDateTime deliveryDate;
-
-    @Embedded
-    private DeliveryAgentId deliveryAgentId;
-
     private LocalDateTime assignedAt;
     private LocalDateTime departedAt;
     private LocalDateTime deliveredAt;
     private LocalDateTime cancelledAt;
 
+    @Embedded
+    private DeliveryAgentId deliveryAgentId;
+
     private String currentLocation;
 
-    protected Delivery() {} // JPA용 기본 생성자
+    protected Delivery() {}
 
     private Delivery(DeliveryNo deliveryNo, OrderNo orderNo, Address deliveryAddress) {
         if (deliveryNo == null) throw new ApiException(ExceptionCode.BAD_REQUEST, "배송 번호는 필수입니다.");
@@ -60,69 +56,88 @@ public class Delivery {
         this.deliveryNo = deliveryNo;
         this.orderNo = orderNo;
         this.deliveryAddress = deliveryAddress;
-        this.deliveryStatus = DeliveryStatus.IN_TRANSIT; // 주문 확정 후 배송 시작
+        this.deliveryStatus = DeliveryStatus.PENDING;
         this.deliveryDate = LocalDateTime.now();
 
-        // 배송 생성 이벤트 발생
-        DomainEventPublisher.publish(new DeliveryCreatedEvent(deliveryNo, orderNo, deliveryAddress));
+        Events.raise(new DeliveryCreatedEvent(deliveryNo, orderNo, deliveryAddress));
     }
 
-    /**
-     * 배송 생성 (주문 확정 후 자동으로 호출됨)
-     */
     public static Delivery createDelivery(DeliveryNo deliveryNo, OrderNo orderNo, Address deliveryAddress) {
         return new Delivery(deliveryNo, orderNo, deliveryAddress);
     }
 
-    /**
-     * 배송 기사 배정 및 배송 출발
-     */
-    public void assignAgentAndStartDelivery(DeliveryAgentId agentId) {
-        if (this.deliveryStatus != DeliveryStatus.IN_TRANSIT)
-            throw new ApiException(ExceptionCode.BAD_REQUEST, "배송 출발은 배송 중(IN_TRANSIT) 상태에서만 가능합니다.");
+    public void startDelivery() {
+        if (this.deliveryStatus != DeliveryStatus.PENDING)
+            throw new ApiException(ExceptionCode.BAD_REQUEST, "배송 준비 상태에서만 배송을 시작할 수 있습니다.");
 
-        if (agentId == null)
-            throw new ApiException(ExceptionCode.BAD_REQUEST, "배송 기사 정보가 필요합니다.");
-
-        this.deliveryAgentId = agentId;
-        this.deliveryStatus = DeliveryStatus.OUT_FOR_DELIVERY;
-        this.assignedAt = LocalDateTime.now();
-        this.departedAt = LocalDateTime.now();
-
-        DomainEventPublisher.publish(new DeliveryAssignedEvent(this.deliveryNo, agentId));
+        this.deliveryStatus = DeliveryStatus.IN_TRANSIT;
+        Events.raise(new DeliveryStartedEvent(this.deliveryNo));
     }
 
-    /**
-     * 배송 완료
-     */
+    public void assignAgent(DeliveryAgentId agentId) {
+        if (this.deliveryStatus != DeliveryStatus.IN_TRANSIT)
+            throw new ApiException(ExceptionCode.BAD_REQUEST, "배송 중 상태에서만 배송 기사를 배정할 수 있습니다.");
+
+        this.deliveryAgentId = agentId;
+        this.assignedAt = LocalDateTime.now();
+        Events.raise(new DeliveryAssignedEvent(this.deliveryNo, agentId));
+    }
+
+    public void departDelivery() {
+        if (this.deliveryStatus != DeliveryStatus.IN_TRANSIT || this.deliveryAgentId == null)
+            throw new ApiException(ExceptionCode.BAD_REQUEST, "배송 기사가 배정된 상태에서만 출발 가능합니다.");
+
+        this.deliveryStatus = DeliveryStatus.OUT_FOR_DELIVERY;
+        this.departedAt = LocalDateTime.now();
+        Events.raise(new DeliveryDepartedEvent(this.deliveryNo));
+    }
+
     public void completeDelivery() {
         if (this.deliveryStatus != DeliveryStatus.OUT_FOR_DELIVERY)
             throw new ApiException(ExceptionCode.BAD_REQUEST, "배송 출발 상태에서만 배송 완료 가능합니다.");
 
         this.deliveryStatus = DeliveryStatus.DELIVERED;
         this.deliveredAt = LocalDateTime.now();
-
-        DomainEventPublisher.publish(new DeliveryCompletedEvent(this.deliveryNo));
+        Events.raise(new DeliveryCompletedEvent(this.deliveryNo));
     }
 
-    /**
-     * 배송 취소 (PENDING 상태일 때만 가능)
-     */
     public void cancelDelivery() {
         if (this.deliveryStatus != DeliveryStatus.PENDING)
-            throw new ApiException(ExceptionCode.BAD_REQUEST, "배송 준비 중 상태에서만 취소 가능합니다.");
+            throw new ApiException(ExceptionCode.BAD_REQUEST, "배송 준비 상태에서만 취소할 수 있습니다.");
 
         this.deliveryStatus = DeliveryStatus.CANCELLED;
         this.cancelledAt = LocalDateTime.now();
+        Events.raise(new DeliveryCancelledEvent(this.deliveryNo));
     }
 
-    /**
-     * 실시간 위치 업데이트 (배송 중, 배송 출발 상태에서만 가능)
-     */
     public void updateLocation(String newLocation) {
         if (this.deliveryStatus != DeliveryStatus.IN_TRANSIT && this.deliveryStatus != DeliveryStatus.OUT_FOR_DELIVERY)
-            throw new ApiException(ExceptionCode.BAD_REQUEST, "배송 중(IN_TRANSIT) 또는 배송 출발(OUT_FOR_DELIVERY) 상태에서만 위치를 업데이트할 수 있습니다.");
+            throw new ApiException(ExceptionCode.BAD_REQUEST, "배송 중 또는 배송 출발 상태에서만 위치를 업데이트할 수 있습니다.");
 
         this.currentLocation = newLocation;
+    }
+
+    public DeliveryNo getDeliveryNo() {
+        return deliveryNo;
+    }
+
+    public OrderNo getOrderNo() {
+        return orderNo;
+    }
+
+    public Address getDeliveryAddress() {
+        return deliveryAddress;
+    }
+
+    public DeliveryStatus getDeliveryStatus() {
+        return deliveryStatus;
+    }
+
+    public LocalDateTime getDeliveryDate() {
+        return deliveryDate;
+    }
+
+    public String getCurrentLocation() {
+        return currentLocation;
     }
 }

@@ -53,7 +53,7 @@ class GetOrderUseCaseTest {
 
         // Then
         assertNotNull(responseDto);
-        assertEquals(order.getNumber().getNumber(), responseDto.getOrderNo());
+        assertEquals(order.getOrderNo().getNumber(), responseDto.getOrderNo());
         assertEquals(order.getCustomerId(), responseDto.getCustomerId());
         assertEquals(order.getItems().size(), responseDto.getOrderItems().size());
 

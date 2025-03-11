@@ -39,32 +39,32 @@ class CancelOrderUseCaseTest {
     @Test
     void cancelOrder_ShouldChangeStatusToCanceled() {
         // given
-        when(orderRepository.findById(order.getNumber())).thenReturn(Optional.of(order));
+        when(orderRepository.findById(order.getOrderNo())).thenReturn(Optional.of(order));
 
         // when
-        cancelOrderUseCase.execute(order.getNumber());
+        cancelOrderUseCase.execute(order.getOrderNo());
 
         // then
         assertEquals(OrderStatus.CANCELED, order.getOrderStatus());
 
-        verify(orderRepository, times(1)).findById(order.getNumber());
+        verify(orderRepository, times(1)).findById(order.getOrderNo());
     }
 
     @DisplayName("존재하지 않는 주문을 취소하려고 하면 예외를 던진다")
     @Test
     void cancelNonExistentOrder_ShouldThrowException() {
         // given
-        when(orderRepository.findById(order.getNumber())).thenReturn(Optional.empty());
+        when(orderRepository.findById(order.getOrderNo())).thenReturn(Optional.empty());
 
         // when & then
         ApiException exception = assertThrows(ApiException.class, () -> {
-            cancelOrderUseCase.execute(order.getNumber());
+            cancelOrderUseCase.execute(order.getOrderNo());
         });
 
         assertEquals("주문을 찾을 수 없습니다.", exception.getMessage());
 
         // 검증
-        verify(orderRepository, times(1)).findById(order.getNumber());
+        verify(orderRepository, times(1)).findById(order.getOrderNo());
         verify(orderRepository, never()).save(any(Order.class));
     }
 
@@ -72,18 +72,18 @@ class CancelOrderUseCaseTest {
     @Test
     void cancelConfirmedOrder_ShouldThrowException() {
         // given
-        order.confirmOrder(); // 주문을 확정 상태로 변경
-        when(orderRepository.findById(order.getNumber())).thenReturn(Optional.of(order));
+        order.confirm(); // 주문을 확정 상태로 변경
+        when(orderRepository.findById(order.getOrderNo())).thenReturn(Optional.of(order));
 
         // when & then
         ApiException exception = assertThrows(ApiException.class, () -> {
-            cancelOrderUseCase.execute(order.getNumber());
+            cancelOrderUseCase.execute(order.getOrderNo());
         });
 
         assertEquals("대기 상태의 주문만 취소할 수 있습니다.", exception.getMessage());
 
         // 검증
-        verify(orderRepository, times(1)).findById(order.getNumber());
+        verify(orderRepository, times(1)).findById(order.getOrderNo());
         verify(orderRepository, never()).save(any(Order.class));
     }
 }

@@ -42,10 +42,10 @@ class ConfirmOrderUseCaseTest {
     @Test
     void confirmOrder_ShouldChangeStatusToConfirmed() {
         //given
-        when(orderRepository.findById(order.getNumber())).thenReturn(Optional.of(order));
+        when(orderRepository.findById(order.getOrderNo())).thenReturn(Optional.of(order));
 
         //when
-        confirmOrderUseCase.execute(order.getNumber());
+        confirmOrderUseCase.execute(order.getOrderNo());
 
         //then
         assertEquals(OrderStatus.CONFIRMED, order.getOrderStatus());
@@ -55,36 +55,36 @@ class ConfirmOrderUseCaseTest {
     @Test
     void confirmNonExistentOrder_ShouldThrowException() {
         // given
-        when(orderRepository.findById(order.getNumber())).thenReturn(Optional.empty());
+        when(orderRepository.findById(order.getOrderNo())).thenReturn(Optional.empty());
 
         // when & then
         ApiException exception = assertThrows(ApiException.class, () -> {
-            confirmOrderUseCase.execute(order.getNumber());
+            confirmOrderUseCase.execute(order.getOrderNo());
         });
 
         assertEquals("주문을 찾을 수 없습니다.", exception.getMessage());
 
         // 검증
-        verify(orderRepository, times(1)).findById(order.getNumber());
+        verify(orderRepository, times(1)).findById(order.getOrderNo());
         verify(orderRepository, never()).save(any(Order.class));
     }
 
     @DisplayName("취소상태의 주문을 확정하려고 하면 예외를 던진다")
     @Test
     void confirmCanceledOrder_ShouldThrowException() {
-        order.cancelOrder();
+        order.cancel();
         // given
-        when(orderRepository.findById(order.getNumber())).thenReturn(Optional.of(order));
+        when(orderRepository.findById(order.getOrderNo())).thenReturn(Optional.of(order));
 
         // when & then
         ApiException exception = assertThrows(ApiException.class, () -> {
-            confirmOrderUseCase.execute(order.getNumber());
+            confirmOrderUseCase.execute(order.getOrderNo());
         });
 
         assertEquals("주문을 확정할 수 없는 상태입니다.", exception.getMessage());
 
         // 검증
-        verify(orderRepository, times(1)).findById(order.getNumber());
+        verify(orderRepository, times(1)).findById(order.getOrderNo());
         verify(orderRepository, never()).save(any(Order.class));
     }
 

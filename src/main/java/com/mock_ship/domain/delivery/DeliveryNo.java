@@ -2,13 +2,11 @@ package com.mock_ship.domain.delivery;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
-import lombok.Getter;
 
 import java.io.Serializable;
 import java.util.Objects;
 
 @Embeddable
-@Getter
 public class DeliveryNo implements Serializable {
 
     @Column(name = "delivery_no")
@@ -40,4 +38,5 @@ public class DeliveryNo implements Serializable {
     public static DeliveryNo of(String number) {
         return new DeliveryNo(number);
     }
+    public String number() { return this.number; }
 }

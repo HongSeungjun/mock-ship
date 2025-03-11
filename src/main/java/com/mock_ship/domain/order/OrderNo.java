@@ -38,4 +38,5 @@ public class OrderNo implements Serializable {
     public static OrderNo of(String number) {
         return new OrderNo(number);
     }
+
 }

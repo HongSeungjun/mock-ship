@@ -1,4 +1,4 @@
-package com.mock_ship.integration.persistence;
+package com.mock_ship.integration.persistence.order;
 
 import com.mock_ship.domain.order.Order;
 import com.mock_ship.domain.order.OrderNo;

@@ -15,7 +15,7 @@ public class OrderResponseDto {
     private List<OrderItem> orderItems;
 
     public OrderResponseDto(Order order) {
-        this.orderNo = order.getNumber().getNumber();
+        this.orderNo = order.getOrderNo().getNumber();
         this.customerId = order.getCustomerId();
         this.orderStatus = order.getOrderStatus();
         this.orderItems = order.getItems();
