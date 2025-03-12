@@ -1,5 +1,7 @@
 package com.mock_ship.application.delivery.usecase;
 
+import com.mock_ship.common.exception.ApiException;
+import com.mock_ship.common.exception.ExceptionCode;
 import com.mock_ship.domain.delivery.Delivery;
 import com.mock_ship.domain.delivery.DeliveryNo;
 import com.mock_ship.domain.delivery.DeliveryRepository;
@@ -17,7 +19,7 @@ public class GetDeliveryUseCase {
     @Transactional(readOnly = true)
     public DeliveryResponseDto execute(DeliveryNo deliveryNo) {
         Delivery delivery = deliveryRepository.findById(deliveryNo)
-                .orElseThrow(() -> new IllegalArgumentException("해당 배송을 찾을 수 없습니다."));
+                .orElseThrow(() -> new ApiException(ExceptionCode.NO_CONTENT, "해당 배송을 찾을 수 없습니다."));
         return DeliveryResponseDto.from(delivery);
     }
 }

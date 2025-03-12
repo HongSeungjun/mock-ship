@@ -19,7 +19,7 @@ public class DeliveryResponseDto {
 
     public static DeliveryResponseDto from(Delivery delivery) {
         return new DeliveryResponseDto(
-                delivery.getDeliveryNo().number(),
+                delivery.getDeliveryNo().getNumber(),
                 delivery.getOrderNo().getNumber(),
                 delivery.getDeliveryStatus().name(),
                 delivery.getDeliveryAddress(),

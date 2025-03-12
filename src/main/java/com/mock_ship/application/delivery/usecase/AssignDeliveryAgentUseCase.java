@@ -1,5 +1,7 @@
 package com.mock_ship.application.delivery.usecase;
 
+import com.mock_ship.common.exception.ApiException;
+import com.mock_ship.common.exception.ExceptionCode;
 import com.mock_ship.domain.delivery.Delivery;
 import com.mock_ship.domain.delivery.DeliveryNo;
 import com.mock_ship.domain.delivery.DeliveryRepository;
@@ -17,7 +19,7 @@ public class AssignDeliveryAgentUseCase {
     @Transactional
     public void execute(DeliveryNo deliveryNo, String agentId) {
         Delivery delivery = deliveryRepository.findById(deliveryNo)
-                .orElseThrow(() -> new IllegalArgumentException("해당 배송을 찾을 수 없습니다."));
+                .orElseThrow(() -> new ApiException(ExceptionCode.NO_CONTENT, "해당 배송을 찾을 수 없습니다."));
         delivery.assignAgent(DeliveryAgentId.of(agentId));
     }
 }

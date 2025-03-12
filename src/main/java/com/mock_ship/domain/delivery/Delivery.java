@@ -140,4 +140,8 @@ public class Delivery {
     public String getCurrentLocation() {
         return currentLocation;
     }
+
+    public DeliveryAgentId getDeliveryAgentId(){
+        return deliveryAgentId;
+    }
 }

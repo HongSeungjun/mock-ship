@@ -38,5 +38,5 @@ public class DeliveryNo implements Serializable {
     public static DeliveryNo of(String number) {
         return new DeliveryNo(number);
     }
-    public String number() { return this.number; }
+    public String getNumber() { return this.number; }
 }

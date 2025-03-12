@@ -1,6 +1,8 @@
 package com.mock_ship.application.delivery.usecase;
 
 import com.mock_ship.common.event.Events;
+import com.mock_ship.common.exception.ApiException;
+import com.mock_ship.common.exception.ExceptionCode;
 import com.mock_ship.domain.delivery.*;
 import com.mock_ship.domain.delivery.event.DeliveryCompletedEvent;
 import lombok.RequiredArgsConstructor;
@@ -16,12 +18,8 @@ public class CompleteDeliveryUseCase {
     @Transactional
     public void execute(DeliveryNo deliveryNo) {
         Delivery delivery = deliveryRepository.findById(deliveryNo)
-                .orElseThrow(() -> new IllegalArgumentException("해당 배송을 찾을 수 없습니다."));
+                .orElseThrow(() -> new ApiException(ExceptionCode.NO_CONTENT, "해당 배송을 찾을 수 없습니다."));
 
         delivery.completeDelivery();
-        deliveryRepository.save(delivery);
-
-        // 이벤트 발행
-        Events.raise(new DeliveryCompletedEvent(deliveryNo));
     }
 }

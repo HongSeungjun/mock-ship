@@ -1,4 +1,4 @@
-package com.mock_ship.integration.persistence.delivery.handler;
+package com.mock_ship.integration.handler;
 
 import com.mock_ship.domain.delivery.event.DeliveryCancelledEvent;
 import lombok.extern.slf4j.Slf4j;
